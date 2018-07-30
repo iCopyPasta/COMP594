@@ -44,7 +44,7 @@ except OSError:
 '''
 
 
-# In[2]:
+# In[1]:
 
 
 #read our excel file
@@ -53,17 +53,17 @@ import pandas as pd
 df = pd.read_excel("./reference_code/Route_segments_urban_lanes_region.xlsx")
 
 
-# In[3]:
+# In[2]:
 
 
 #create our types
 df.sort_values('URBAN')
 
 
-# In[6]:
+# In[3]:
 
 
-with open('./reference_code/urban_list.txt', 'w') as urban, open('./reference_code/non_urban_list.txt', 'w') as non_urban:
+with open('/home/peo5032/Documents/COMP594/urban_list.txt', 'w') as urban, open('/home/peo5032/Documents/COMP594/non_urban_list.txt', 'w') as non_urban:
 #route, begarm, endarm, urban, two lane, region, functional class
     for index, row in df.iterrows():
         tmp = str(row[0]) + '_' + str(int(row[1]))
@@ -74,9 +74,9 @@ with open('./reference_code/urban_list.txt', 'w') as urban, open('./reference_co
                 urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_d.png' + " /home/peo5032/Documents/COMP594/URBAN_IMAGES" + '\n')
         else:
             for i in range(0,100):
-                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_b.png'  + " /home/peo5032/Documents/COMP594/URBAN_IMAGES" + '\n')
-                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_i.png'  + " /home/peo5032/Documents/COMP594/URBAN_IMAGES" + '\n')
-                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_d.png'  + " /home/peo5032/Documents/COMP594/URBAN_IMAGES" + '\n')
+                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_b.png'  + " /home/peo5032/Documents/COMP594/NON_URBAN_IMAGES" + '\n')
+                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_i.png'  + " /home/peo5032/Documents/COMP594/NON_URBAN_IMAGES" + '\n')
+                non_urban.write("cp /home/jjb24/wsdot/input/images/" + tmp + '.' + str(i) + '_d.png'  + " /home/peo5032/Documents/COMP594/NON_URBAN_IMAGES" + '\n')
 
         
     urban.close()
