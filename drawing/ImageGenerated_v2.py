@@ -3,22 +3,28 @@ from random import randint
 import numpy as np
 import pandas as pd
 import sys
+PATH = "/home/peo5032/Documents/COMP594"
+INPUT_PATH = PATH + "/input"
 
 class roadImage2(object):
 
     def __init__(self):
-        self.IMAGE_SIZE=400
-        df = pd.read_pickle("../input/all_data.pkl")
-        df = df[df.MedianWidth > 0]
-        self.shldrCenterStdDev = df['ShldrWidthCenter'].std()
-        self.shldrCenterMean = df['ShldrWidthCenter'].mean()
-        self.RdwyWidthStdDev = df['RdwyWidth'].std()
-        self.RdwyWidthMean = df['RdwyWidth'].mean()
-        self.NumLanesStdDev = df['NumLanes'].std()
-        self.NumLanesMean = df['NumLanes'].mean()
-        self.ShldrWidthStdDev = df['ShldrWidth'].std()
-        self.ShldrWidthMean = df['ShldrWidth'].mean()
-    
+        
+        try:
+            self.IMAGE_SIZE=400
+            df = pd.read_pickle(INPUT_PATH + "/train_images_v2.pkl")
+            df = df[df.MedianWidth > 0]
+            self.shldrCenterStdDev = df['ShldrWidthCenter'].std()
+            self.shldrCenterMean = df['ShldrWidthCenter'].mean()
+            self.RdwyWidthStdDev = df['RdwyWidth'].std()
+            self.RdwyWidthMean = df['RdwyWidth'].mean()
+            self.NumLanesStdDev = df['NumLanes'].std()
+            self.NumLanesMean = df['NumLanes'].mean()
+            self.ShldrWidthStdDev = df['ShldrWidth'].std()
+            self.ShldrWidthMean = df['ShldrWidth'].mean()
+        except IOError:
+            print('An error occured trying to read the file.')
+            
     def drawBackground(self,imgMap):
         choice = randint(0,2)
         if choice == 0:

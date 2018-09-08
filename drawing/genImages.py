@@ -3,6 +3,9 @@ import pandas as pd
 from random import randint
 
 factor = 0.45
+PATH = "/home/peo5032/Documents/COMP594"
+INPUT_PATH = PATH + "/input"
+
 
 df = pd.DataFrame()
 NumLanes = []
@@ -27,7 +30,7 @@ for i in range(0,100):
     ShldrWidthCenter.append(centerShldrWidth)
     FileName = str(i) + ".png"
     FileNames.append(FileName)
-    img.save("../input/v2/" + FileName,"PNG")
+    img.save(INPUT_PATH + "/" + FileName,"PNG")
 
 df['NumLanes'] = NumLanes
 df['ShldrWidth'] = ShldrWidth
@@ -35,4 +38,4 @@ df['RdwyWidth'] = RoadWidth
 df['ShldrWidthCenter'] = ShldrWidthCenter
 df['FileName'] = FileNames
 
-df.to_pickle("../input/train_images_v2.pkl")
+df.to_pickle(INPUT_PATH + "/train_images_v2.pkl")
