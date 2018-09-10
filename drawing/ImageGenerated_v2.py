@@ -126,5 +126,3 @@ class roadImage2(object):
         centerShldrWidth = centerShldrWidth*factor
 
         return (roadWidth,laneCount,shoulderWidth,centerShldrWidth),img
-
-        
