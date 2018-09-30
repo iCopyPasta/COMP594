@@ -3,6 +3,7 @@
 
 # In[1]:
 
+
 from PIL import Image
 from random import randint
 import numpy as np
@@ -63,11 +64,13 @@ class datasetFactory(object):
         
         # in the background channel, update values to know which are being used in other tensors
         for i in range(1,len(self.classList)):
-            self.tensorMap[0][self.tensorMap[i] == i] = i 
+            self.tensorMap[0][self.tensorMap[i] == 1] = -1 
                 
         # flush to allow background only values
         # UNUSED CLASS LABEL: 999
-        self.tensorMap[0][self.tensorMap[0] != 0] = 999
+        self.tensorMap[0][self.tensorMap[0] == 0] = 1
+        self.tensorMap[0][self.tensorMap[0] == -1] = 0
+        
                   
     def drawStraightLine(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,class_type_flag):
         if start < 0 or start + width >= self.IMAGE_SIZE:
@@ -86,7 +89,7 @@ class datasetFactory(object):
                     g = max(0,min(255,int(np.random.normal(green,greenDev))))
                     b = max(0,min(255,int(np.random.normal(blue,blueDev))))
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = class_type_corresponding_channel
+                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
                     if onLen > 0:
                         dist = dist - 1
                         if dist < 0:
@@ -114,7 +117,7 @@ class datasetFactory(object):
                     g = max(0,min(255,int(np.random.normal(green,greenDev))))
                     b = max(0,min(255,int(np.random.normal(blue,blueDev))))
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = class_type_corresponding_channel
+                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
                     if onLen > 0:
                         dist = dist - 1
                         if dist < 0:
@@ -127,7 +130,7 @@ class datasetFactory(object):
                     b = max(0,min(255,int(np.random.normal(128,40))))
                     
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = class_type_corresponding_channel
+                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
                     dist = dist - 1
                     if dist < 0:
                         dist = onLen
@@ -217,10 +220,93 @@ class datasetFactory(object):
         
         for i in range(0, self.IMAGE_SIZE):
             for j in range(0, self.IMAGE_SIZE):
-                if tensor[class_type_corresponding_channel, i,j] == class_type_corresponding_channel:
-                    #show class label in red
-                    imgMap[i,j] = (255,0,0)
+                if tensor[class_type_corresponding_channel, i,j] == 1:
+                    #show class label in black
+                    imgMap[i,j] = (0,0,0)
                 #else:
                 #    imgMap[i,j] = (0,0,0)
         
         return imgTMP
+
+
+# In[2]:
+
+
+#centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth
+c = randint(0,80)
+lanecount = randint(1,5)
+laneWidth = randint(17,35)
+lineWidth = randint(1,2)
+shoulderWidth = randint(0,89)
+
+
+# In[3]:
+
+
+new_road_factory = datasetFactory()
+
+print(c,lanecount,laneWidth,lineWidth,shoulderWidth)
+
+test_tuple,img,test_tensor = new_road_factory.generateNewImageWithTensor(c,
+                                                                         lanecount,
+                                                                         laneWidth,
+                                                                         lineWidth,
+                                                                         shoulderWidth)
+
+
+# In[4]:
+
+
+img.save("/home/peo5032/Pictures/TESTER.png")
+img
+
+
+# In[5]:
+
+
+new_road_factory.classList
+
+
+# In[13]:
+
+
+new_road_factory.showClassLabaelOnImage(img, test_tensor, "right-shoulder")
+
+
+# In[14]:
+
+
+if test_tensor.shape[0] % 3 != 0:
+    print("oops")
+
+
+# In[15]:
+
+
+testPIC = torchvision.transforms.functional.rotate(img,45)
+
+
+# In[16]:
+
+
+test_tensor2 = test_tensor.clone()
+tmp2 = torch.zeros(1,400,400, dtype = torch.int32)
+
+for i in range(0,len(new_road_factory.classList)):
+    tmp2[0] = test_tensor[i].clone()
+    PIC = torchvision.transforms.ToPILImage(mode='I')(tmp2)
+    PIC = torchvision.transforms.functional.rotate(PIC,-45)
+    test_tensor2[i] = torchvision.transforms.functional.to_tensor(PIC)
+
+
+# In[19]:
+
+
+new_road_factory.classList
+
+
+# In[20]:
+
+
+new_road_factory.showClassLabaelOnImage(testPIC, test_tensor2, "right-shoulder")
+
