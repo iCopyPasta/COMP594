@@ -41,7 +41,7 @@ class datasetFactory(object):
             self.tensorMap = torch.zeros([self.NUM_CLASSES,
                                           self.IMAGE_SIZE,
                                           self.IMAGE_SIZE],
-                                         dtype = torch.int32)
+                                         dtype = torch.int64)
             
             
         except IOError:
@@ -227,86 +227,3 @@ class datasetFactory(object):
                 #    imgMap[i,j] = (0,0,0)
         
         return imgTMP
-
-
-# In[2]:
-
-
-#centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth
-c = randint(0,80)
-lanecount = randint(1,5)
-laneWidth = randint(17,35)
-lineWidth = randint(1,2)
-shoulderWidth = randint(0,89)
-
-
-# In[3]:
-
-
-new_road_factory = datasetFactory()
-
-print(c,lanecount,laneWidth,lineWidth,shoulderWidth)
-
-test_tuple,img,test_tensor = new_road_factory.generateNewImageWithTensor(c,
-                                                                         lanecount,
-                                                                         laneWidth,
-                                                                         lineWidth,
-                                                                         shoulderWidth)
-
-
-# In[4]:
-
-
-img.save("/home/peo5032/Pictures/TESTER.png")
-img
-
-
-# In[5]:
-
-
-new_road_factory.classList
-
-
-# In[13]:
-
-
-new_road_factory.showClassLabaelOnImage(img, test_tensor, "right-shoulder")
-
-
-# In[14]:
-
-
-if test_tensor.shape[0] % 3 != 0:
-    print("oops")
-
-
-# In[15]:
-
-
-testPIC = torchvision.transforms.functional.rotate(img,45)
-
-
-# In[16]:
-
-
-test_tensor2 = test_tensor.clone()
-tmp2 = torch.zeros(1,400,400, dtype = torch.int32)
-
-for i in range(0,len(new_road_factory.classList)):
-    tmp2[0] = test_tensor[i].clone()
-    PIC = torchvision.transforms.ToPILImage(mode='I')(tmp2)
-    PIC = torchvision.transforms.functional.rotate(PIC,-45)
-    test_tensor2[i] = torchvision.transforms.functional.to_tensor(PIC)
-
-
-# In[19]:
-
-
-new_road_factory.classList
-
-
-# In[20]:
-
-
-new_road_factory.showClassLabaelOnImage(testPIC, test_tensor2, "right-shoulder")
-
