@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[15]:
 
 
 from PIL import Image
@@ -17,7 +17,7 @@ import torchvision
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 PATH = "/home/peo5032/Documents/COMP594"
-INPUT_PATH = PATH + "/input"
+INPUT_PATH = PATH + "/input/gen1"
 
 class datasetFactory(object):
 
@@ -38,11 +38,6 @@ class datasetFactory(object):
                 self.classMap[self.classList[i]] = i
                                
             self.NUM_CLASSES = len(self.classList)
-            self.tensorMap = torch.zeros([self.NUM_CLASSES,
-                                          self.IMAGE_SIZE,
-                                          self.IMAGE_SIZE],
-                                         dtype = torch.int64)
-            
             
         except IOError:
             print('An error occured trying to read the file.')
@@ -58,21 +53,22 @@ class datasetFactory(object):
                 #DRAW BACKGROUND
                 imgMap[i,j] = rgb
         
-    def computeTensorBackground(self, imgMap):
+    def computeTensorBackground(self,imgMap,tensorMap):
         # background channel
-        self.tensorMap[0] = torch.zeros([self.IMAGE_SIZE, self.IMAGE_SIZE])
+        tensorMap[0] = torch.zeros([self.IMAGE_SIZE, self.IMAGE_SIZE])
         
         # in the background channel, update values to know which are being used in other tensors
         for i in range(1,len(self.classList)):
-            self.tensorMap[0][self.tensorMap[i] == 1] = -1 
+            tensorMap[0][tensorMap[i] == 1] = -1 
                 
         # flush to allow background only values
         # UNUSED CLASS LABEL: 999
-        self.tensorMap[0][self.tensorMap[0] == 0] = 1
-        self.tensorMap[0][self.tensorMap[0] == -1] = 0
+        tensorMap[0][tensorMap[0] == 0] = 1
+        tensorMap[0][tensorMap[0] == -1] = 0
         
                   
-    def drawStraightLine(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,class_type_flag):
+    def drawStraightLine(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,
+                         class_type_flag,tensorMap):
         if start < 0 or start + width >= self.IMAGE_SIZE:
             print(start,width, "ERROR")
             exit()
@@ -89,7 +85,7 @@ class datasetFactory(object):
                     g = max(0,min(255,int(np.random.normal(green,greenDev))))
                     b = max(0,min(255,int(np.random.normal(blue,blueDev))))
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
+                    tensorMap[class_type_corresponding_channel, i,j] = 1
                     if onLen > 0:
                         dist = dist - 1
                         if dist < 0:
@@ -101,7 +97,8 @@ class datasetFactory(object):
                         dist = onLen
                         on = not on
                         
-    def drawWhiteLaneDevisor(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,class_type_flag):
+    def drawWhiteLaneDevisor(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,class_type_flag,
+                             tensorMap):
         if start < 0 or start + width >= self.IMAGE_SIZE:
             print(start,width, "ERROR")
             exit()
@@ -117,7 +114,7 @@ class datasetFactory(object):
                     g = max(0,min(255,int(np.random.normal(green,greenDev))))
                     b = max(0,min(255,int(np.random.normal(blue,blueDev))))
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
+                    tensorMap[class_type_corresponding_channel, i,j] = 1
                     if onLen > 0:
                         dist = dist - 1
                         if dist < 0:
@@ -130,14 +127,14 @@ class datasetFactory(object):
                     b = max(0,min(255,int(np.random.normal(128,40))))
                     
                     imgMap[i,j] = (r,g,b)
-                    self.tensorMap[class_type_corresponding_channel, i,j] = 1
+                    tensorMap[class_type_corresponding_channel, i,j] = 1
                     dist = dist - 1
                     if dist < 0:
                         dist = onLen
                         on = not on                    
                         
                 
-    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth):
+    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth, tensorMap):
         img = Image.new('RGB',(self.IMAGE_SIZE,self.IMAGE_SIZE))
         imgMap = img.load()
         
@@ -162,7 +159,7 @@ class datasetFactory(object):
         self.drawBackground(imgMap)
 
         #DRAW: left shoulder    
-        self.drawStraightLine(imgMap,start,centerShldrWidth,128,20,128,20,128,20,0,0, "left-shoulder")
+        self.drawStraightLine(imgMap,start,centerShldrWidth,128,20,128,20,128,20,0,0, "left-shoulder",tensorMap)
         
         # move pointer by the shoulder width
         start += centerShldrWidth
@@ -173,32 +170,32 @@ class datasetFactory(object):
             #print("printing lane number:",i)
             if i == 0:
                 #DRAW left-yellow-line-marker
-                self.drawStraightLine(imgMap,start,lineWidth,200,40,200,40,50,40,0,0, "left-yellow-line-marker")
+                self.drawStraightLine(imgMap,start,lineWidth,200,40,200,40,50,40,0,0, "left-yellow-line-marker",tensorMap)
             else:
                 #DRAW white-lane-marker
-                self.drawWhiteLaneDevisor(imgMap,start,lineWidth,200,40,200,40,200,40,20,20, "white-lane-markers")
+                self.drawWhiteLaneDevisor(imgMap,start,lineWidth,200,40,200,40,200,40,20,20, "white-lane-markers",tensorMap)
             
             #move over a white-lane-markers line
             start += lineWidth 
             
             #DRAW our lane
-            self.drawStraightLine(imgMap,start,laneWidth-lineWidth,128,40,128,40,128,40,0,0, "lane")
+            self.drawStraightLine(imgMap,start,laneWidth-lineWidth,128,40,128,40,128,40,0,0, "lane",tensorMap)
             
             #move pointer by the lane width
             start += laneWidth - lineWidth 
         
         #DRAW white-line-marker
         #self.drawStraightLine(imgMap,start,lineWidth,200,40,400,40,200,40,0,0, "right-white-line-marker")
-        self.drawStraightLine(imgMap,start,lineWidth,255,25,255,25,255,25,0,0, "right-white-line-marker")
+        self.drawStraightLine(imgMap,start,lineWidth,255,25,255,25,255,25,0,0, "right-white-line-marker", tensorMap)
         
         #move pointer by the white-line width
         start += lineWidth
         
         #DRAW right-shoulder
-        self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "right-shoulder")
+        self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "right-shoulder", tensorMap)
         
         #fill in background tensor
-        self.computeTensorBackground(imgMap)
+        self.computeTensorBackground(imgMap, tensorMap)
         
         #roadWidth = centerShldrWidth + laneCount*laneWidth + shoulderWidth
         roadWidth = laneCount*laneWidth
@@ -211,9 +208,9 @@ class datasetFactory(object):
         #centerShldrWidth = (centerShldrWidth*factor - self.ShldrWidthMean)/self.ShldrWidthStdDev
         centerShldrWidth = centerShldrWidth*factor
 
-        return (roadWidth,laneCount,shoulderWidth,centerShldrWidth),img, self.tensorMap    
+        return (roadWidth,laneCount,shoulderWidth,centerShldrWidth),img, tensorMap    
     
-    def showClassLabaelOnImage(self, img, tensor, class_label):
+    def showClassLabelOnImage(self, img, tensor, class_label):
         imgTMP = img.copy()
         imgMap = imgTMP.load()
         class_type_corresponding_channel = self.classMap[class_label]
@@ -223,7 +220,7 @@ class datasetFactory(object):
                 if tensor[class_type_corresponding_channel, i,j] == 1:
                     #show class label in black
                     imgMap[i,j] = (0,0,0)
-                #else:
-                #    imgMap[i,j] = (0,0,0)
         
         return imgTMP
+
+
