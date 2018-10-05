@@ -43,7 +43,7 @@ import torchfcn
 #'/home/peo5032/data/models/pytorch/fcn16s_from_caffe.pth'
 
 
-# In[ ]:
+# In[2]:
 
 
 import os
@@ -58,15 +58,18 @@ parser.add_argument("-b", "--batch", help="batch size in each epoch")
 parser.add_argument("-e", "--epoch", help="number of epochs for training")
 parser.add_argument("-r", "--root_folder", help="destination for root folder")
 parser.add_argument("-i", "--iteration", help="which generation number we are using")
-parser.add_argument("-t", "--training", help="load FCN weights on start")
-parser.add_argument("-w", "--weights", help="location to save weights")
+parser.add_argument("-t", "--training", help="True/False to load FCN weights on start")
+parser.add_argument("-w", "--weights", help="full path to save weights")
+parser.add_argument("-k", "--resume", help="full path to resume training use weights")
 
 
-# In[ ]:
+# In[3]:
 
 
 PRETRAINED_PATH = '/home/peo5032/data/models/pytorch/fcn16s_from_caffe.pth'
-SAVE_LOCATION = "/home/peo5032/Documents/COMP594/"
+SAVE_LOCATION = "/home/peo5032/Documents/COMP594/model.pt"
+LOAD_LOCATION = "/home/peo5032/Documents/COMP594/model.pt"
+
 NUM_CLASSES = 7
 EPOCHS = 4
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -108,13 +111,17 @@ if args.training:
 if args.weights:
     print("save location is set to", args.weights)
     SAVE_LOCATION = args.weights
+    
+if args.resume:
+    print("load location is set to", args.resume)
+    LOAD_LOCATION = args.resume
 
 #TODO in arguments
 # root folder location
 # saved weights location
 
 
-# In[2]:
+# In[4]:
 
 
 from torchvision import datasets
@@ -135,7 +142,7 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         return tuple_with_path
 
 
-# In[3]:
+# In[5]:
 
 
 #https://github.com/GautamSridhar/FCN-implementation-on-Pytorch/blob/master/DiceLoss.py
@@ -144,7 +151,7 @@ class ImageFolderWithPaths(datasets.ImageFolder):
 #https://github.com/iCopyPasta/Pytorch-UNet/blob/master/dice_loss.py
 from torch.autograd import Function, Variable
 
-class DiceCoeff(Function):
+class DiceCoeff(torch.nn.Module):
     """Dice coeff for individual examples"""
 
     def forward(self, input, target):
@@ -183,9 +190,55 @@ class DiceCoeff(Function):
         return s / (i + 1)
 
 
+# In[6]:
+
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class BCELoss2d(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(BCELoss2d, self).__init__()
+        self.bce_loss = nn.BCELoss(weight, size_average)
+
+    def forward(self, logits, targets):
+        probs = torch.sigmoid(logits)
+        probs_flat = probs.view(-1)
+        targets_flat = targets.view(-1)
+        return self.bce_loss(probs_flat, targets_flat)
+
+
+class SoftDiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(SoftDiceLoss, self).__init__()
+
+    def forward(self, logits, targets):
+        num = targets.size(0)
+        probs = torch.sigmoid(logits)
+        m1 = probs.view(num, -1)
+        m2 = targets.view(num, -1)
+        intersection = (m1 * m2)
+
+        score = 2. * (intersection.sum(1) + 1) / (m1.sum(1) + m2.sum(1) + 1)
+        score = 1 - score.sum() / num
+        return score
+
+
+# https://github.com/pytorch/pytorch/issues/1249
+def dice_coeff(pred, target):
+    smooth = 1.
+    num = pred.size(0)
+    m1 = pred.view(num, -1)  # Flatten
+    m2 = target.view(num, -1)  # Flatten
+    intersection = (m1 * m2).sum()
+
+    return (2. * intersection + smooth) / (m1.sum() + m2.sum() + smooth)
+
+
 # ## Load Data
 
-# In[4]:
+# In[7]:
 
 
 data_transforms = transforms.Compose([transforms.Resize([imageSize,imageSize]),
@@ -212,7 +265,7 @@ new_road_factory = DrawingWithTensors.datasetFactory()
 
 # ## Training Routine without Validation Steps
 
-# In[5]:
+# In[8]:
 
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
@@ -244,8 +297,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
             labels[i] = torch.load(locations.replace(".png", ".pt").replace("roads", "tensor_values")) #manually fetch your own tensor values here somehow? 
             i += 1
             
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        
 
         # forward
         # track history if only in train
@@ -256,11 +308,16 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
             loss = criterion(outputs, labels) #ground truth comparison
 
             # backward + optimize 
-            loss.backward(retain_graph=True)
+            loss.backward()
             optimizer.step()
             
+            # zero the parameter gradients
+            optimizer.zero_grad()
+            
+            
         # statistics
-        epoch_loss = loss.item() * inputs.size(0) # unsure what this part is
+        #epoch_loss = loss.item() * inputs.size(0) # unsure what this part is
+        epoch_loss = loss.item() # unsure what this part is
         print('epoch loss:',epoch_loss)
         
         
@@ -288,12 +345,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
 
     # load best model weights
     #model.load_state_dict(best_model_wts)
-    torch.save(model, SAVE_LOCATION + "/model.pt")
+    torch.save(model, SAVE_LOCATION)
     
     return model
 
 
-# In[6]:
+# In[9]:
 
 
 def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
@@ -313,7 +370,7 @@ def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
 
 # ## Load Pretrained Model Weights
 
-# In[7]:
+# In[10]:
 
 
 if newTraining is True:
@@ -321,59 +378,64 @@ if newTraining is True:
     model.load_state_dict(torch.load(PRETRAINED_PATH))
     
 else:
-    model = torch.load('/home/peo5032/Documents/COMP594/model.pt')
+    model = torch.load(LOAD_LOCATION)
     
 model = model.to(device)
 
 
 # ## Change Architecture for New Classes and New Training
 
-# In[8]:
+# In[11]:
 
 
 if newTraining is True:  
-    model.score_fr = torch.nn.Conv2d(4096, NUM_CLASSES , kernel_size=(1, 1), stride=(1, 1))
+    model.score_fr = torch.nn.Conv2d(4096, NUM_CLASSES , kernel_size=(1, 1),
+                                     stride=(1, 1))
     torch.nn.init.uniform_(model.score_fr.weight, a=0, b=0.05)
     torch.nn.init.uniform_(model.score_fr.bias, a=0, b=0.05)
     #model.score_fr.weight.data.fill_(0.10)
     #model.score_fr.bias.data.fill_(0.00)
 
-    model.score_pool4 = torch.nn.Conv2d(512, NUM_CLASSES, kernel_size=(1, 1), stride=(1, 1))
+    model.score_pool4 = torch.nn.Conv2d(512, NUM_CLASSES, kernel_size=(1, 1),
+                                        stride=(1, 1))
     torch.nn.init.uniform_(model.score_pool4.weight, a=0, b=0.05)
     torch.nn.init.uniform_(model.score_pool4.bias, a=0, b=0.05)
     #model.score_pool4.weight.data.fill_(0.10)
     #model.score_pool4.bias.data.fill_(0.00)
 
-    model.upscore2 = torch.nn.ConvTranspose2d(NUM_CLASSES, NUM_CLASSES, kernel_size=(4, 4), stride=(2, 2), bias=False)
+    model.upscore2 = torch.nn.ConvTranspose2d(NUM_CLASSES, NUM_CLASSES, kernel_size=(4, 4),
+                                              stride=(2, 2),bias=False)
     torch.nn.init.uniform_(model.upscore2.weight, a=0, b=0.05)
     #model.upscore2.weight.data.fill_(0.10)
 
-    model.upscore16 = torch.nn.ConvTranspose2d(NUM_CLASSES, NUM_CLASSES, kernel_size=(32, 32), stride=(16, 16), bias=False)
+    model.upscore16 = torch.nn.ConvTranspose2d(NUM_CLASSES, NUM_CLASSES, kernel_size=(32, 32),
+                                               stride=(16, 16),bias=False)
     torch.nn.init.uniform_(model.upscore16.weight, a=0, b=0.05)
     #model.upscore16.weight.data.fill_(0.10)
     
-    torch.save(model, SAVE_LOCATION + "/model.pt")
+    torch.save(model, SAVE_LOCATION)
 
 
 # ## Training and Results
 
-# In[9]:
+# In[12]:
 
 
 #criterion = torch.nn.MSELoss()
 #criterion = torch.nn.L1Loss()
-#criterion = torch.nn.BCEWithLogitsLoss()
+criterion = torch.nn.BCEWithLogitsLoss()
 #criterion = torch.nn.NLLLoss()
-criterion = DiceCoeff()
+#criterion = DiceCoeff()
+#criterion = SoftDiceLoss()
 
-# Observe that all parameters are being optimized
+# Observe default choices, except using amsgrad version of Adam
 optimizer_ft = optim.Adam(model.parameters(),amsgrad=True)
 
-# Decay LR by a factor of 0.1 every 3 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=3, gamma=0.1)
+# Osscilate between high and low learning rates
+exp_lr_scheduler = lr_scheduler.CosineAnnealingLR(optimizer_ft, 7)
 
 
-# In[ ]:
+# In[14]:
 
 
 model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=EPOCHS)

@@ -34,21 +34,21 @@ args = parser.parse_args()
 
 # check for --version or -V
 if args.version:  
-    print("this is version 0.1")
+    print("this is version 0.1", flush=True)
     
 if args.size: 
     upper_bound = int(args.size) + 1
 
 if args.rotations: 
-    print("rotations was", args.rotations)
+    print("rotations was", args.rotations, flush=True)
     
 if args.root_folder:  
     if os.path.exists(root_folder):
         ROOT = root_folder
-    print("destination was", args.root_folder)
+    print("destination was", args.root_folder, flush=True)
     
 if args.iteration:
-    print("iteration was", args.iteration)
+    print("iteration was", args.iteration, flush=True)
     iteration = args.iteration
 
 factor = 0.45
@@ -75,7 +75,7 @@ tmp_tensor = torch.zeros(7,400,400,dtype=torch.float32)
 
 for i in range(0,upper_bound):
     if i % 10 == 0:
-        print("Picture ",i)
+        print("Picture ",i, flush=True)
     c = randint(0,80)
     lanecount = randint(1,5)
     laneWidth = randint(17,35)
@@ -108,5 +108,5 @@ df['ShldrWidthCenter'] = ShldrWidthCenter
 df['FileName'] = FileNames
 
 df.to_pickle(PICKLE_PATH + "/train_images_v2.pkl")
-print("program terminated")
+print("program terminated", flush=True)
 
