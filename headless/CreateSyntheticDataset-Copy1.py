@@ -69,7 +69,7 @@ os.makedirs(IMAGE_PATH, exist_ok=True)
 TENSOR_PATH = ROOT + "/tensor_values"
 os.makedirs(TENSOR_PATH, exist_ok=True)
 
-PICKLE_PATH = ROOT + iteration
+PICKLE_PATH = ROOT
 
 df = pd.DataFrame()
 NumLanes = []

@@ -59,18 +59,17 @@ parser.add_argument("-b", "--batch", help="batch size in each epoch")
 parser.add_argument("-e", "--epoch", help="number of epochs for training")
 parser.add_argument("-r", "--root_folder", help="destination for root folder")
 parser.add_argument("-i", "--iteration", help="which generation number we are using")
-parser.add_argument("-t", "--training", help="full path to load FCN weights on start")
+parser.add_argument("-t", "--training", help="true/false to start with new Unet weights")
 parser.add_argument("-w", "--weights", help="full path to save weights")
 parser.add_argument("-c", "--pickup", help="full path to resume training use weights")
 parser.add_argument("-p", "--picture", help="picture dimensions")
+parser.add_argument("-d", "--dataset", help="root directory of dataset folder")
 
 
 # In[3]:
 
 
 PRETRAINED_PATH = '/home/peo5032/data/models/pytorch/fcn16s_from_caffe.pth'
-SAVE_LOCATION = "/home/peo5032/Documents/COMP594/model2.pt"
-LOAD_LOCATION = "/home/peo5032/Documents/COMP594/model2.pt"
 
 NUM_CLASSES = 7
 EPOCHS = 4
@@ -83,7 +82,7 @@ newTraining = False
 
 #change values if user specifies non-default values
 #'-t','True','-i','2','-e','325','-b','1', '-w', '/home/peo5032/Documents/COMP594/model2.pt', '-p','416'
-args = parser.parse_args([])
+args = parser.parse_args()
 
 # check for --version or -V
 if args.version:  
@@ -105,34 +104,40 @@ if args.root_folder:
 if args.iteration:
     print("iteration is set to", args.iteration)
     iteration = args.iteration
+
     
+SAVE_LOCATION = "/home/peo5032/Documents/COMP594/input/gen"+iteration+"/model.pt"
 
 if args.weights:
     print("save location is set to", args.weights)
-    os.makedirs(args.weights, exist_ok=True)
     SAVE_LOCATION = args.weights
     
     
+LOAD_LOCATION = "/home/peo5032/Documents/COMP594/input/gen"+iteration+"/model.pt"
+
 
 if args.pickup:
     print("load location is set to", args.pickup)
     LOAD_LOCATION = args.pickup
+
     
+data_dir = '/home/peo5032/Documents/COMP594/input/gen'+iteration
+
+if args.dataset:
+    print("loading dataset from ", args.dataset)
+    data_dir = args.dataset
     
 if args.training:
     if args.training.lower() == "true":
-        print("training is set to true")
+        print("new training is set to true")
         newTraining = True
-        
         
 if args.picture:
     print("picture size to train on is", args.picture)
     imageSize = int(args.picture)
+
         
 
-#TODO in arguments
-# root folder location
-# saved weights location
 
 
 # In[4]:
@@ -156,58 +161,13 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         return tuple_with_path
 
 
-# In[5]:
+# In[6]:
 
 
 #https://github.com/GautamSridhar/FCN-implementation-on-Pytorch/blob/master/DiceLoss.py
 # deleted
 
 #https://github.com/milesial/Pytorch-UNet
-import torch
-from torch.autograd import Function, Variable
-
-class DiceCoeff(Function):
-    """Dice coeff for individual examples"""
-
-    def forward(self, input, target):
-        self.save_for_backward(input, target)
-        eps = 0.0001
-        self.inter = torch.dot(input.view(-1), target.view(-1))
-        self.union = torch.sum(input) + torch.sum(target) + eps
-
-        t = (2 * self.inter.float() + eps) / self.union.float()
-        return t
-
-    # This function has only a single output, so it gets only one gradient
-    def backward(self, grad_output):
-
-        input, target = self.saved_variables
-        grad_input = grad_target = None
-
-        if self.needs_input_grad[0]:
-            grad_input = grad_output * 2 * (target * self.union + self.inter)                          / self.union * self.union
-        if self.needs_input_grad[1]:
-            grad_target = None
-
-        return grad_input, grad_target
-
-
-def dice_coeff(input, target):
-    """Dice coeff for batches"""
-    if input.is_cuda:
-        s = torch.FloatTensor(1).cuda().zero_()
-    else:
-        s = torch.FloatTensor(1).zero_()
-
-    for i, c in enumerate(zip(input, target)):
-        s = s + DiceCoeff().forward(c[0], c[1])
-
-    return s / (i + 1)
-
-
-# In[6]:
-
-
 #https://pythonexample.com/code/dice-loss-pytorch/
     
 class DICELossMultiClass(torch.nn.Module):
@@ -271,7 +231,6 @@ data_transforms = transforms.Compose([transforms.Resize([imageSize,imageSize]),
                                      ])
 
 # instantiate the dataset and dataloader
-data_dir = '/home/peo5032/Documents/COMP594/input/gen'+iteration
 dataset = ImageFolderWithPaths(data_dir, transform=data_transforms) # our custom dataset
 dataloaders = torch.utils.data.DataLoader(dataset, batch_size = batchSize, shuffle=True, num_workers=1)
 
@@ -298,8 +257,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
     best_loss = math.inf
 
     for epoch in range(1,num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-        print('-' * 10)
+        print('Epoch {}/{}'.format(epoch, num_epochs - 1), flush=True)
+        print('-' * 10, flush=True)
         
         model.train()  # Set model to training mode
 
@@ -336,8 +295,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
             # statistics
             epoch_loss += loss.item()
         
-        print('Epoch finished- dice: {}'.format(1-epoch_loss))
-        print('Epoch finished-loss: {}'.format(epoch_loss))
+        print('Epoch finished', flush=True)
+        print("dice: {}".format(1-epoch_loss), flush=True)
+        print('loss: {}'.format(epoch_loss), flush=True)
 
         #save best copy of  model
         if epoch_loss < best_loss:
@@ -345,7 +305,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=4):
             torch.save(model, SAVE_LOCATION.replace("model", "model_best"))
         
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(time_elapsed //3600,
+    print('Training complete in {:.0f}d {:.0f}h {:.0f}m {:.0f}s'.format(time_elapsed //(3600*3600), time_elapsed //3600,
                                                                 time_elapsed // 60, time_elapsed % 60), flush=True)
 
 
@@ -390,13 +350,13 @@ model = model.to(device)
 # In[11]:
 
 
-item1 = torch.ones(1,2,2,2)
-item2 = torch.ones(1,2,2,2)
+#item1 = torch.ones(1,2,2,2)
+#item2 = torch.ones(1,2,2,2)
 
-crit = DICELossMultiClass()
+#crit = DICELossMultiClass()
 #crit = torch.nn.BCELoss()
-loss = crit(item1, item2)
-print(loss.item())
+#loss = crit(item1, item2)
+#print(loss.item())
 
 
 # ## Training and Results
