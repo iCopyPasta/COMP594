@@ -31,7 +31,6 @@ iteration = "1"
 rotations="0"
 ROOT = "/home/peo5032/Documents/COMP594/input/gen"
 
-
 # read arguments from the command line
 args = parser.parse_args()
 
@@ -40,8 +39,8 @@ if args.version:
     print("this is version 0.1", flush=True)
     
 if args.size: 
-    print("will create", upper_bound, "images", flush=True)
     upper_bound = int(args.size) + 1
+    print("will create", upper_bound, "images", flush=True)
 
 if args.rotations: 
     print("rotations was", args.rotations, flush=True)
@@ -49,10 +48,12 @@ if args.rotations:
 if args.root_folder:  
     os.makedirs(root_folder, exist_ok=True)
     print("destination was", args.root_folder, flush=True)
+    ROOT = args.root_folder
     
 if args.iteration:
     print("iteration was", args.iteration, flush=True)
     iteration = args.iteration
+    ROOT += iteration
     
 if args.dimensions:
     print("dimension chosen was", args.dimensions,flush=True)
@@ -62,10 +63,10 @@ factor = 0.45
 
 #TODO: ADD CODE TO MAKE DIRS WHEN THEY DO NOT EXIST FOR SOME MACHINE
 os.makedirs(ROOT, exist_ok=True)
-IMAGE_PATH = ROOT + iteration + "/roads"
+IMAGE_PATH = ROOT + "/roads"
 os.makedirs(IMAGE_PATH, exist_ok=True)
 
-TENSOR_PATH = ROOT + iteration + "/tensor_values"
+TENSOR_PATH = ROOT + "/tensor_values"
 os.makedirs(TENSOR_PATH, exist_ok=True)
 
 PICKLE_PATH = ROOT + iteration
