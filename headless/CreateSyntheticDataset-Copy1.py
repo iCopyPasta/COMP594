@@ -22,12 +22,15 @@ parser.add_argument("-s", "--size", help="upper bound of number of images to inc
 parser.add_argument("-t", "--rotations", help="degree of rotations in generation of images")
 parser.add_argument("-r", "--root_folder", help="destination for root folder")
 parser.add_argument("-i", "--iteration", help="which generation number we are using")
+parser.add_argument("-d", "--dimensions", help="square image dimensions")
 
 #defined defaults
 upper_bound = 101
+isize = 400
 iteration = "1"
 rotations="0"
 ROOT = "/home/peo5032/Documents/COMP594/input/gen"
+
 
 # read arguments from the command line
 args = parser.parse_args()
@@ -37,26 +40,33 @@ if args.version:
     print("this is version 0.1", flush=True)
     
 if args.size: 
+    print("will create", upper_bound, "images", flush=True)
     upper_bound = int(args.size) + 1
 
 if args.rotations: 
     print("rotations was", args.rotations, flush=True)
     
 if args.root_folder:  
-    if os.path.exists(root_folder):
-        ROOT = root_folder
+    os.makedirs(root_folder, exist_ok=True)
     print("destination was", args.root_folder, flush=True)
     
 if args.iteration:
     print("iteration was", args.iteration, flush=True)
     iteration = args.iteration
-
+    
+if args.dimensions:
+    print("dimension chosen was", args.dimensions,flush=True)
+    isize = int(args.dimensions)
+    
 factor = 0.45
 
 #TODO: ADD CODE TO MAKE DIRS WHEN THEY DO NOT EXIST FOR SOME MACHINE
-
+os.makedirs(ROOT, exist_ok=True)
 IMAGE_PATH = ROOT + iteration + "/roads"
+os.makedirs(IMAGE_PATH, exist_ok=True)
+
 TENSOR_PATH = ROOT + iteration + "/tensor_values"
+os.makedirs(TENSOR_PATH, exist_ok=True)
 
 PICKLE_PATH = ROOT + iteration
 
@@ -66,8 +76,8 @@ ShldrWidth = []
 ShldrWidthCenter = []
 RoadWidth = []
 FileNames = []
-imageGen = DrawingWithTensors.datasetFactory()
-tmp_tensor = torch.zeros(7,400,400,dtype=torch.float32)
+imageGen = DrawingWithTensors.datasetFactory(IMAGE_SIZE = isize)
+tmp_tensor = torch.zeros(7,isize,isize,dtype=torch.float32)
 
 
 # In[ ]:
@@ -81,7 +91,6 @@ for i in range(0,upper_bound):
     laneWidth = randint(17,35)
     lineWidth = randint(1,2)
     shoulderWidth = randint(0,89)
-    tmp_tensor = torch.zeros(7,400,400,dtype=torch.float32)
     
     #create tuple of information, img, and tensor
     tuple,img,tmp_tensor = imageGen.generateNewImageWithTensor(c,lanecount,laneWidth,lineWidth,shoulderWidth, tmp_tensor)
