@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
 import torchvision
-get_ipython().run_line_magic('matplotlib', 'inline')
+#get_ipython().run_line_magic('matplotlib', 'inline')
 
 PATH = "/home/peo5032/Documents/COMP594"
 INPUT_PATH = PATH + "/input/gen1"
