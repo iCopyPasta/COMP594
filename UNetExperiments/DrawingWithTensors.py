@@ -271,7 +271,6 @@ class datasetFactory(object):
 # In[4]:
 
 
-'''
 def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
     IMAGE_SIZE = 416
     imgTMP = img.copy()
@@ -295,7 +294,6 @@ def rotationOfImageAndTensor(img, tensor, classList, rotation=0):
             PIC = torchvision.transforms.functional.rotate(PIC,-1 * rotation)
             tensor = torchvision.transforms.functional.to_tensor(PIC)
         return img, tensor
-'''
 
 
 # In[5]:
