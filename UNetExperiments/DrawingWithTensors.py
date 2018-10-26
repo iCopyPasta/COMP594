@@ -16,9 +16,10 @@ import tensorflow as tf
 import torchvision
 import warnings
 import functools
+import os
 
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('matplotlib', 'notebook')
 
 class datasetFactory(object):
 
@@ -43,17 +44,50 @@ class datasetFactory(object):
             
         except IOError:
             print('An error occured trying to read the file.')
+        
+        
+    def drawBackground(self, imgMap, b_type="", patch_size=104):
+        #use default patch size of 104px by 104px
+        
+        if b_type == "trees" or b_type =="water" or b_type =="desert":
             
-    
-    def drawBackground(self, imgMap):
+            filesPath = os.getcwd() + "/imagesToSnip/"+b_type
+            
+            for root, dirs, files in os.walk(filesPath, topdown=True):
+                #print("hello")
+                #print(files)
+                randomImageName = files[randint(0,len(files)-1)]
+                randomImageData = Image.open(filesPath + "/"+randomImageName)
+                patchMap = randomImageData.load()
+                
+                
+                if b_type == "trees" or b_type =="water": 
+                    
+                    for i in range(self.IMAGE_SIZE):
+                        for j in range(self.IMAGE_SIZE):
+                            #DRAW BACKGROUND PATCHES - choosing RIGHTMOST 104px of patch
+                            imgMap[i,j] = patchMap[i % patch_size+(self.IMAGE_SIZE - patch_size),
+                                                   j % patch_size]
+                            
+                elif b_type =="desert":      
+                    for i in range(self.IMAGE_SIZE):
+                        for j in range(self.IMAGE_SIZE):
+                            #DRAW BACKGROUND PATCHES - choosing RIGHTMOST 104px of patch
+                            imgMap[i,j] = patchMap[i % patch_size,
+                                                   j % patch_size]
         
-        # choose one color for background
-        rgb = (randint(0,255),randint(0,255),randint(0,255))
-        
-        for i in range(self.IMAGE_SIZE):
-            for j in range(self.IMAGE_SIZE):
-                #DRAW BACKGROUND
-                imgMap[i,j] = rgb
+            
+            
+        elif b_type =="building":
+            print("implement")
+        else:         
+            # choose one solid color for background
+            rgb = (randint(0,255),randint(0,255),randint(0,255))
+
+            for i in range(self.IMAGE_SIZE):
+                for j in range(self.IMAGE_SIZE):
+                    #DRAW BACKGROUND
+                    imgMap[i,j] = rgb
     
     #https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically
         
@@ -137,7 +171,7 @@ class datasetFactory(object):
                         on = not on                    
                         
                 
-    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth, tensorMap):
+    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth, tensorMap, b_type):
         img = Image.new('RGB',(self.IMAGE_SIZE,self.IMAGE_SIZE))
         imgMap = img.load()
         
@@ -159,7 +193,7 @@ class datasetFactory(object):
            sys.exit(-1)
             
         #DRAW BACKGROUND
-        self.drawBackground(imgMap)
+        self.drawBackground(imgMap, b_type)
 
         #DRAW: left shoulder    
         self.drawStraightLine(imgMap,start,centerShldrWidth,128,20,128,20,128,20,0,0, "road",tensorMap)
@@ -170,7 +204,6 @@ class datasetFactory(object):
         
         # for the number of lanes we have, draw them
         for i in range(laneCount):
-            #print("printing lane number:",i)
             if i == 0:
                 #DRAW left-yellow-line-marker
                 self.drawStraightLine(imgMap,start,lineWidth,200,40,200,40,50,40,0,0, "road",tensorMap)
@@ -196,38 +229,16 @@ class datasetFactory(object):
         
         #DRAW right-shoulder
         self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "road", tensorMap)
-        
-        #fill in background tensor
-        #self.computeTensorBackground(imgMap, tensorMap)
-        
-        #roadWidth = centerShldrWidth + laneCount*laneWidth + shoulderWidth
-        roadWidth = laneCount*laneWidth
 
-        #roadWidth = (roadWidth*factor - self.RdwyWidthMean)/self.RdwyWidthStdDev
+        roadWidth = laneCount*laneWidth
         roadWidth = roadWidth*factor
-        #laneCount = (laneCount - self.NumLanesMean)/self.NumLanesStdDev
-        #shoulderWidth = (shoulderWidth*factor - self.shldrCenterMean)/self.shldrCenterStdDev
         shoulderWidth = shoulderWidth*factor
-        #centerShldrWidth = (centerShldrWidth*factor - self.ShldrWidthMean)/self.ShldrWidthStdDev
         centerShldrWidth = centerShldrWidth*factor
 
         return (roadWidth,laneCount,shoulderWidth,centerShldrWidth),img, tensorMap    
-    
-    
-    
-    def showClassLabelOnImage(self, img, tensor, class_label):
-        imgTMP = img.copy()
-        imgMap = imgTMP.load()
-        class_type_corresponding_channel = self.classMap[class_label]
-        
-        for i in range(0, self.IMAGE_SIZE):
-            for j in range(0, self.IMAGE_SIZE):
-                if tensor[class_type_corresponding_channel, i,j] == 1:
-                    #show class label in black
-                    imgMap[i,j] = (0,0,0)
-        
-        return imgTMP
 
+
+# ## Visual Testing
 
 # In[2]:
 
@@ -243,17 +254,16 @@ class datasetFactory(object):
 # In[3]:
 
 
-#new_road_factory = datasetFactory()
+#imageGen = datasetFactory()
 #test_tensor = torch.zeros(1,416,416)
 
 #print(c,lanecount,laneWidth,lineWidth,shoulderWidth)
 
-#test_tuple,img,test_tensor = new_road_factory.generateNewImageWithTensor(c,
-#                                                                         lanecount,
-#                                                                         laneWidth,
+#test_tuple,img,test_tensor = imageGen.generateNewImageWithTensor(c,lanecount,laneWidth,
 #                                                                         lineWidth,
 #                                                                         shoulderWidth,
-#                                                                         test_tensor)
+#                                                                         test_tensor,
+#                                                                b_type="desert")
 
 #torch.save(test_tensor, "/home/peo5032/Desktop/tensor.pt")
 
@@ -261,6 +271,7 @@ class datasetFactory(object):
 # In[4]:
 
 
+'''
 def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
     IMAGE_SIZE = 416
     imgTMP = img.copy()
@@ -269,8 +280,8 @@ def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
     print("index for channel", class_label, ":", class_type_corresponding_channel)    
     for i in range(0, IMAGE_SIZE):
         for j in range(0, IMAGE_SIZE):
-            if tensor[class_type_corresponding_channel, i,j] >= threshold:
-                #show class label in white
+            if tensor[class_type_corresponding_channel, i,j] < threshold:
+                #black out all but the believed road
                 imgMap[i,j] = (0,0,0)
         
     return imgTMP
@@ -284,6 +295,7 @@ def rotationOfImageAndTensor(img, tensor, classList, rotation=0):
             PIC = torchvision.transforms.functional.rotate(PIC,-1 * rotation)
             tensor = torchvision.transforms.functional.to_tensor(PIC)
         return img, tensor
+'''
 
 
 # In[5]:
@@ -296,24 +308,18 @@ def rotationOfImageAndTensor(img, tensor, classList, rotation=0):
 # In[6]:
 
 
-#new_road_factory.classList
+#test_tensor = torch.load('/home/peo5032/Desktop/tensor.pt')
+#showInferenceOnImage(img, test_tensor, "road", 0.6, imageGen.classMap)
 
 
 # In[7]:
 
 
-#test_tensor = torch.load('/home/peo5032/Desktop/tensor.pt')
-#showInferenceOnImage(img, test_tensor, "road", 0.6, new_road_factory.classMap)
+#img, test_tensor = rotationOfImageAndTensor(img, test_tensor, imageGen.classList, 90)
 
 
 # In[8]:
 
 
-#img, test_tensor = rotationOfImageAndTensor(img, test_tensor, new_road_factory.classList, 135)
-
-
-# In[9]:
-
-
-#showInferenceOnImage(img, test_tensor, "road", threshold=0.60,classMap=new_road_factory.classMap)
+#showInferenceOnImage(img, test_tensor, "road", threshold=0.60,classMap=imageGen.classMap)
 
