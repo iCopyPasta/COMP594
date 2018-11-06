@@ -18,9 +18,6 @@ import warnings
 import functools
 import os
 
-
-get_ipython().run_line_magic('matplotlib', 'notebook')
-
 class datasetFactory(object):
 
     def __init__(self, IMAGE_SIZE = 416, listOfClasses=["road"]):
@@ -28,6 +25,12 @@ class datasetFactory(object):
         try:
             self.IMAGE_SIZE=IMAGE_SIZE
             self.classMap = dict()
+            
+            self.darkGreyRGBLowerBound = [74,76,80]
+            self.darkGreyRGBUpperBound = [105,106,106]
+        
+            self.lightGreyRGBLowerBound = [123,129,116]
+            self.lightGreyRGBUpperBound = [146,147,139]
             
             if(len(listOfClasses) <= 0):
                 #self.classList = ["background","left-shoulder","left-yellow-line-marker","white-lane-markers","lane",
@@ -103,6 +106,42 @@ class datasetFactory(object):
         tensorMap[0][tensorMap[0] == 0] = 1
         tensorMap[0][tensorMap[0] == -1] = 0
         
+    def drawRoadLane(self,imgMap,start,width,class_type_flag,tensorMap):
+        print("execution of drawRoadLane")
+        if start < 0 or start + width >= self.IMAGE_SIZE:
+            print(start,width, "ERROR")
+            exit()
+            
+        red = 0
+        green = 0
+        blue = 0
+            
+        class_type_corresponding_channel = self.classMap[class_type_flag]
+        
+        for i in range(start,start+width):
+            
+            if self.lightOrGrey == 0:
+                red = randint(self.lightGreyRGBLowerBound[0],
+                             self.lightGreyRGBUpperBound[0])
+                green = randint(self.lightGreyRGBLowerBound[1],
+                             self.lightGreyRGBUpperBound[1])
+                blue = randint(self.lightGreyRGBLowerBound[2],
+                             self.lightGreyRGBUpperBound[2])
+            else:
+                red = randint(self.darkGreyRGBLowerBound[0],
+                             self.darkGreyRGBUpperBound[0])
+                green = randint(self.darkGreyRGBLowerBound[1],
+                             self.darkGreyRGBUpperBound[1])
+                blue = randint(self.darkGreyRGBLowerBound[2],
+                             self.darkGreyRGBUpperBound[2])
+            
+            for j in range(self.IMAGE_SIZE):
+                    r = red
+                    g = green
+                    b = blue
+                    imgMap[i,j] = (r,g,b)
+                    tensorMap[class_type_corresponding_channel, i,j] = 1
+
                   
     def drawStraightLine(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,
                          class_type_flag,tensorMap):
@@ -111,7 +150,6 @@ class datasetFactory(object):
             exit()
             
         class_type_corresponding_channel = self.classMap[class_type_flag]
-        #print("DRAW CLASS", class_type_flag)
         
         for i in range(start,start+width):
             on = True
@@ -133,6 +171,9 @@ class datasetFactory(object):
                     if dist < 0:
                         dist = onLen
                         on = not on
+                        
+
+                        
                         
     def drawWhiteLaneDevisor(self,imgMap,start,width,red,redDev,green,greenDev,blue,blueDev,onLen,offLen,class_type_flag,
                              tensorMap):
@@ -192,11 +233,14 @@ class datasetFactory(object):
            print(centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth,"EXCEEDED IMAGE_SIZE")
            sys.exit(-1)
             
+        self.lightOrGrey = randint(0,1)
+            
         #DRAW BACKGROUND
         self.drawBackground(imgMap, b_type)
 
-        #DRAW: left shoulder    
-        self.drawStraightLine(imgMap,start,centerShldrWidth,128,20,128,20,128,20,0,0, "road",tensorMap)
+        #DRAW: left shoulder     
+        self.drawRoadLane(imgMap,start,centerShldrWidth,"road",tensorMap)
+        #self.drawStraightLine(imgMap,start,centerShldrWidth,128,20,128,20,128,20,0,0, "road",tensorMap)
         
         # move pointer by the shoulder width
         start += centerShldrWidth
@@ -206,7 +250,7 @@ class datasetFactory(object):
         for i in range(laneCount):
             if i == 0:
                 #DRAW left-yellow-line-marker
-                self.drawStraightLine(imgMap,start,lineWidth,200,40,200,40,50,40,0,0, "road",tensorMap)
+                self.drawStraightLine(imgMap,start,lineWidth,200,10,200,40,50,40,0,0, "road",tensorMap)
             else:
                 #DRAW white-lane-marker
                 self.drawWhiteLaneDevisor(imgMap,start,lineWidth,200,40,200,40,200,40,20,20, "road",tensorMap)
@@ -215,20 +259,25 @@ class datasetFactory(object):
             start += lineWidth 
             
             #DRAW our lane
-            self.drawStraightLine(imgMap,start,laneWidth-lineWidth,128,40,128,40,128,40,0,0, "road",tensorMap)
+            self.drawRoadLane(imgMap,start,laneWidth-lineWidth,"road",tensorMap)
             
             #move pointer by the lane width
             start += laneWidth - lineWidth 
         
-        #DRAW white-line-marker
+        #DRAW right white-line-marker
         #self.drawStraightLine(imgMap,start,lineWidth,200,40,400,40,200,40,0,0, "right-white-line-marker")
-        self.drawStraightLine(imgMap,start,lineWidth,255,25,255,25,255,25,0,0, "road", tensorMap)
+        self.drawStraightLine(imgMap,start,lineWidth,
+                              255,25,
+                              255,25,
+                              255,25,
+                              0,0, "road", tensorMap)
         
         #move pointer by the white-line width
         start += lineWidth
         
         #DRAW right-shoulder
-        self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "road", tensorMap)
+        self.drawRoadLane(imgMap,start,centerShldrWidth,"road",tensorMap)
+        #self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "road", tensorMap)
 
         roadWidth = laneCount*laneWidth
         roadWidth = roadWidth*factor
@@ -243,12 +292,12 @@ class datasetFactory(object):
 # In[2]:
 
 
-#centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth
+####centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth
 #c = randint(0,80)
-#lanecount = randint(1,5)
-#laneWidth = randint(17,35)
+#lanecount = randint(1,4)
+#laneWidth = randint(17,40)
 #lineWidth = randint(1,2)
-#shoulderWidth = randint(0,89)
+#shoulderWidth = randint(0,70)
 
 
 # In[3]:
@@ -263,7 +312,8 @@ class datasetFactory(object):
 #                                                                         lineWidth,
 #                                                                         shoulderWidth,
 #                                                                         test_tensor,
-#                                                                b_type="desert")
+#                                                                b_type="desert",
+#                                                                factor_arg=0.05)
 
 #torch.save(test_tensor, "/home/peo5032/Desktop/tensor.pt")
 
@@ -306,17 +356,27 @@ def rotationOfImageAndTensor(img, tensor, classList, rotation=0):
 # In[6]:
 
 
-#test_tensor = torch.load('/home/peo5032/Desktop/tensor.pt')
-#showInferenceOnImage(img, test_tensor, "road", 0.6, imageGen.classMap)
+#TEST_PATH_LOAD = "/home/peo5032/COMP594/UNetExperiments/imagesToSnip/desert/"
+#%matplotlib notebook
+
+#img = Image.open(TEST_PATH_LOAD + "270_5.35_b.png")
+#plt.imshow(img)
 
 
 # In[7]:
 
 
-#img, test_tensor = rotationOfImageAndTensor(img, test_tensor, imageGen.classList, 90)
+#test_tensor = torch.load('/home/peo5032/Desktop/tensor.pt')
+#showInferenceOnImage(img, test_tensor, "road", 0.6, imageGen.classMap)
 
 
 # In[8]:
+
+
+#img, test_tensor = rotationOfImageAndTensor(img, test_tensor, imageGen.classList, 90)
+
+
+# In[9]:
 
 
 #showInferenceOnImage(img, test_tensor, "road", threshold=0.60,classMap=imageGen.classMap)
