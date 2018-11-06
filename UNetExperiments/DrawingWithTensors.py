@@ -72,7 +72,7 @@ class datasetFactory(object):
                 elif b_type =="desert":      
                     for i in range(self.IMAGE_SIZE):
                         for j in range(self.IMAGE_SIZE):
-                            #DRAW BACKGROUND PATCHES - choosing RIGHTMOST 104px of patch
+                            #DRAW BACKGROUND PATCHES - choosing LEFTMOST 104px of patch
                             imgMap[i,j] = patchMap[i % patch_size,
                                                    j % patch_size]
         
@@ -171,11 +171,11 @@ class datasetFactory(object):
                         on = not on                    
                         
                 
-    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth, tensorMap, b_type):
+    def generateNewImageWithTensor(self,centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth, tensorMap, b_type, factor_arg=0.45):
         img = Image.new('RGB',(self.IMAGE_SIZE,self.IMAGE_SIZE))
         imgMap = img.load()
         
-        factor = 0.45   # ft/px
+        factor = factor_arg   # ft/px
         # 0 to 36
         #centerShldrWidth=randint(0,80)
         # 0 to 5
