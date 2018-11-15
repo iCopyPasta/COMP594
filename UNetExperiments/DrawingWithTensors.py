@@ -107,10 +107,10 @@ class datasetFactory(object):
         tensorMap[0][tensorMap[0] == -1] = 0
         
     def drawRoadLane(self,imgMap,start,width,class_type_flag,tensorMap):
-        print("execution of drawRoadLane")
+        #print("execution of drawRoadLane")
         if start < 0 or start + width >= self.IMAGE_SIZE:
             print(start,width, "ERROR")
-            exit()
+            sys.exit(-1)
             
         red = 0
         green = 0
@@ -147,7 +147,7 @@ class datasetFactory(object):
                          class_type_flag,tensorMap):
         if start < 0 or start + width >= self.IMAGE_SIZE:
             print(start,width, "ERROR")
-            exit()
+            sys.exit(-1)
             
         class_type_corresponding_channel = self.classMap[class_type_flag]
         
@@ -179,7 +179,7 @@ class datasetFactory(object):
                              tensorMap):
         if start < 0 or start + width >= self.IMAGE_SIZE:
             print(start,width, "ERROR")
-            exit()
+            sys.exit(-1)
             
         class_type_corresponding_channel = self.classMap[class_type_flag]
         
@@ -227,11 +227,15 @@ class datasetFactory(object):
         #lineWidth = randint(1,2)
         # 8 to 40
         #shoulderWidth=randint(0,89)
-        start = (self.IMAGE_SIZE - centerShldrWidth - (laneCount+1)*lineWidth - laneCount * laneWidth - shoulderWidth)//2
         
-        if start < 10:
-           print(centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth,"EXCEEDED IMAGE_SIZE")
-           sys.exit(-1)
+        #start = (self.IMAGE_SIZE - centerShldrWidth - (laneCount+1)*lineWidth - laneCount * laneWidth - shoulderWidth)//2
+        start = randint(1,(self.IMAGE_SIZE - centerShldrWidth - (laneCount+1)*lineWidth - laneCount * laneWidth - shoulderWidth - 1))
+        
+        
+        
+        #if start < 10:
+        #   print(centerShldrWidth,laneCount,laneWidth,lineWidth,shoulderWidth,"EXCEEDED IMAGE_SIZE")
+        #   sys.exit(-1)
             
         self.lightOrGrey = randint(0,1)
             
@@ -260,6 +264,7 @@ class datasetFactory(object):
             
             #DRAW our lane
             self.drawRoadLane(imgMap,start,laneWidth-lineWidth,"road",tensorMap)
+            #self.drawStraightLine(imgMap,start,laneWidth-lineWidth,128,40,128,40,128,40,0,0, "road",tensorMap)
             
             #move pointer by the lane width
             start += laneWidth - lineWidth 
@@ -276,7 +281,7 @@ class datasetFactory(object):
         start += lineWidth
         
         #DRAW right-shoulder
-        self.drawRoadLane(imgMap,start,centerShldrWidth,"road",tensorMap)
+        self.drawRoadLane(imgMap,start,shoulderWidth,"road",tensorMap)
         #self.drawStraightLine(imgMap,start,shoulderWidth, 128,40,128,40,128,40,0,0, "road", tensorMap)
 
         roadWidth = laneCount*laneWidth
@@ -318,7 +323,7 @@ class datasetFactory(object):
 #torch.save(test_tensor, "/home/peo5032/Desktop/tensor.pt")
 
 
-# In[4]:
+# In[2]:
 
 
 def showInferenceOnImage(img, tensor, class_label, threshold, classMap):
@@ -349,7 +354,7 @@ def rotationOfImageAndTensor(img, tensor, classList, rotation=0):
 # In[5]:
 
 
-#img.save("/home/peo5032/Pictures/TESTER.png")
+#img.save("/home/peo5032/Pictures/TESTER2.png")
 #img
 
 
